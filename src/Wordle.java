@@ -1,11 +1,13 @@
 import java.awt.*;
-import java.util.*;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import javax.swing.*;
 
+
 public class Wordle extends JFrame {
-    private static final String[] WORD_LIST = {
-        "apple", "grape", "peach", "melon", "berry", "lemon", "mango", "plums", "cider", "zebra"
-    };
+    private List<String> wordList;
     private static final int MAX_TRIES = 6;
     private String secretWord;
     private int tries = 0;
@@ -15,8 +17,16 @@ public class Wordle extends JFrame {
     private JLabel messageLabel;
 
     public Wordle() {
-        secretWord = WORD_LIST[new Random().nextInt(WORD_LIST.length)];
-        secretWord = secretWord.toLowerCase();
+        // Load dictionary from file
+        wordList = loadDictionary("C:/Users/joehu/OneDrive/Desktop/Wordle/src/dictionary.txt");
+
+        if (wordList.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Dictionary file is empty or not found.", "Error", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
+
+        // Choose random secret word
+        secretWord = wordList.get(new Random().nextInt(wordList.size())).toLowerCase();
 
         setTitle("Wordle Swing");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -45,6 +55,22 @@ public class Wordle extends JFrame {
         setVisible(true);
     }
 
+    private List<String> loadDictionary(String filename) {
+        List<String> words = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim().toLowerCase();
+                if (line.length() == 5) { // Only include 5-letter words
+                    words.add(line);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return words;
+    }
+
     private void handleGuess() {
         String guess = inputField.getText().toLowerCase();
 
@@ -53,11 +79,15 @@ public class Wordle extends JFrame {
             return;
         }
 
+        if (!wordList.contains(guess)) {
+            messageLabel.setText("Not a valid word.");
+            return;
+        }
+
         JPanel rowPanel = new JPanel();
         rowPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 
         boolean[] secretUsed = new boolean[5];
-
         JLabel[] labels = new JLabel[5];
 
         // First pass: correct position
